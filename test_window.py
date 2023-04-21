@@ -4,6 +4,10 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QFileDialog
 from PyQt5.QtGui import QFont, QPixmap, QIcon
 from PyQt5.QtCore import Qt
 
+#To delete later
+import cv2
+from PIL import Image
+from PIL.ImageQt import ImageQt
 
 # Class QTestWindow to customize your application's test window
 class TestWindow(QMainWindow):
@@ -56,6 +60,12 @@ class TestWindow(QMainWindow):
         # label under picture 2
         #TODO
 
+        #Tutaj należy dodać wyjątki
+        #Nie wybrano zdjęcia
+        #Nie wybrano sieci
+        #itd. itd.
+        #Potem należy dodać że po poprawie rozdzielczosci będzie znika przycisk popraw rozdzielczośći i pojawia się przycisk zapisz
+
         # picture 2 
         self.label_3 = QtWidgets.QLabel(self)
         self.label_3.move(600,200)
@@ -70,6 +80,13 @@ class TestWindow(QMainWindow):
         self.label_4.resize(400,20)
         self.label_4.setText("Damian Łysomirski Praca Magisterska")
 
+        # label5
+        self.label_5 = QtWidgets.QLabel(self)
+        self.label_5.setText("Wybierz rodzaj sieci: ")
+        self.label_5.move(600, 50)
+        self.label_5.resize(400,40)
+        self.label_5.setFont(QFont('Times', 10))
+
         # warning
         self.label_warning = QtWidgets.QLabel(self)
         self.label_warning.move(450,40)
@@ -83,11 +100,12 @@ class TestWindow(QMainWindow):
         self.button_2.setFont(QFont('Times', 10))
         self.button_2.clicked.connect(self.test)
 
-        #Tutaj należy dodać wyjątki
-        #Nie wybrano zdjęcia
-        #Nie wybrano sieci
-        #itd. itd.
-        #Potem należy dodać że po poprawie rozdzielczosci będzie znika przycisk popraw rozdzielczośći i pojawia się przycisk zapisz
+        #Ten fragment też jest potem do usnięcia
+        self.combobox = QtWidgets.QComboBox(self)
+        self.combobox.move(600, 100)
+        self.combobox.resize(400,40)
+        self.combobox.addItems(['Bicubic 2x', 'SRCNN 2x', 'SRResNet'])
+        self.combobox.setFont(QFont('Times', 10))
 
     # Function to browse file that we want improve the resolution
     def browsefiles(self):
@@ -97,9 +115,20 @@ class TestWindow(QMainWindow):
         self.text_field_1.setText(fname[0])
         self.label_2.setPixmap(QPixmap(fname[0]))
 
-    def test(self):
-        self.label_warning.setText("ERROR")
-        self.label_warning.setStyleSheet("color: red;")
-        self.label_warning.setFont(QFont('Times', 20))
+        """
+        This fragment to delete later 
+        """
+        #Tutaj wgl coś crashuje czasami..
+        # img = Image.open(fname[0])
+        # w, h = img.size
+        # resize_image = img.resize((int(w/2), int(h/2)), Image.BICUBIC)  
+        # resize_imagee = ImageQt(resize_image)
+        # self.label_2.setPixmap(QPixmap.fromImage(resize_imagee))
+       
 
+    def test(self):
+        #self.label_warning.setText("ERROR")
+        #self.label_warning.setStyleSheet("color: red;")
+        #self.label_warning.setFont(QFont('Times', 20))
+        pass
  
