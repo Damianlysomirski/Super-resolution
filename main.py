@@ -59,6 +59,8 @@ def main():
 
 
 
+
+
 def check_device():
     print(torch.cuda.is_available())
     print("\n")
