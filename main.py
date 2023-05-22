@@ -14,6 +14,9 @@ from models.VDSR import VDSR
 import torch.optim as optim
 import torch.nn as nn
 
+from train import train
+from validate import validate
+
 # def test_window():
 #     app = QApplication([])
 #     window = TestWindow()
@@ -21,7 +24,7 @@ import torch.nn as nn
 #     sys.exit(app.exec_())
 
 def main():
-    epochs = 0
+    epochs = 100
     scale_factor = 3
 
     #Define datasets
@@ -53,25 +56,48 @@ def main():
     #Only used for VDSR
     criterion = nn.MSELoss(reduction="sum")
 
-    
+    for epoch in range(epochs):
+        print(f"Epoch {epoch + 1} of {epochs}")
 
+        train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device)
+        val_epoch_loss, val_epoch_psnr = validate(model, train_loader, optimizer, criterion, device)
 
+        print(f"Train PSNR: {train_epoch_psnr:.3f}")
+        print(f"Val PSNR: {val_epoch_psnr:.3f}")
+        train_loss.append(train_epoch_loss)
+        train_psnr.append(train_epoch_psnr)
+        val_loss.append(val_epoch_loss)
+        val_psnr.append(val_epoch_psnr)
 
+        train_epoch_psnr > best_psnr
 
+        if (val_epoch_psnr > best_psnr):
+            best_psnr = val_epoch_psnr
+            today = date.today()
 
+            # dd/mm/YY
+            d1 = today.strftime("%d_%m_%Y")
+            model_name = model.__class__.__name__
+            model_save_name = model_name + "_" + d1 + "_scale_factor_" + str(scale_factor) + "_epochs_" + str(epochs) + ".pt"
+            
+            #path = F"{model_save_name}" 
+            path = "./checkpoints/" + model_save_name
 
+            torch.save({
+                    'epoch': epoch,
+                    'model_name': model_name,
+                    'model_scale_factor': scale_factor,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'train_epoch_loss': train_epoch_loss,
+                    'train_psnr' : train_epoch_psnr,
+                    'val_epoch_loss': val_epoch_loss,
+                    'val_epoch_psnr': val_epoch_psnr,
+                    }, path)
+            print("Zapisano nowy checkpoint")
 
-def check_device():
-    print(torch.cuda.is_available())
-    print("\n")
-    print(torch.cuda.current_device())
-    print("\n")
-    print(torch.cuda.device(0))
-    print("\n")
-    print(torch.cuda.device_count())
-    print("\n")
-    print(torch.cuda.get_device_name(0))
-
+    end = time.time()
+    print(f"Finished training in: {((end-start)/60):.3f} minutes") 
 
 if __name__ == "__main__":
     #show_pair_of_images(3, "./resources/BSDS200/", "valid", "132")
