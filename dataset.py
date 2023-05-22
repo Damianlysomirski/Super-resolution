@@ -29,6 +29,7 @@ class SR_Dataset(Dataset):
 
         #For test phase use full-sizes image
         #Remember to use batch_size = 1, in test phase
+        self.data_transform = Compose([ToTensor()])
         self.data_to_tensor = Compose([ToTensor()])
         self.data_transform_PIL = Compose([ToPILImage()])
 
@@ -61,7 +62,6 @@ class SR_Dataset(Dataset):
 
         else:
              raise ValueError("Unsupported data processing model, please use 'train', 'valid' or 'test'.")
-        img = self.data_transform(img)   
 
 
         #Before downsampling transform to PIL image
@@ -96,4 +96,3 @@ def show_pair_of_images(scale_factor, path, mode, crop_size):
     ax[1].title.set_text("LR Image")
     plt.show()
 
- 

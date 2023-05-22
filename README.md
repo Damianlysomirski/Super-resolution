@@ -17,8 +17,11 @@ python -m venv venv
 #Avtivation on linux
 source ./venv/bin/activate
 
-#Activation od windows
-TODO
+#Activation od windows CMD
+.\venv\Scripts\activate
+
+#Deactive on windows CMD
+.\venv\Scripts\deactivate
 
 # Installing requirements
 pip install -r requirements.txt
