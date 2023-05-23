@@ -52,13 +52,15 @@ class SR_Dataset(Dataset):
             img = self.data_transform_valid(img)
         elif(self.mode == ("test")):
             w, h = img.size
-            img = self.data_transform(img)
 
             #For test images with different resolutions have to cut them to able division by scale factor
             w_mod = w % self.scale_factor
             h_mod = h % self.scale_factor
             w = w - w_mod
             h = h - h_mod
+
+            img = img.resize((int(w), int(h)), Image.BICUBIC)  
+            img = self.data_transform(img)
 
         else:
              raise ValueError("Unsupported data processing model, please use 'train', 'valid' or 'test'.")
@@ -85,10 +87,12 @@ class SR_Dataset(Dataset):
     
 def show_pair_of_images(scale_factor, path, mode, crop_size):
     dataset = SR_Dataset(scale_factor = scale_factor, path = path, mode = mode, crop_size = crop_size)
-    loader = DataLoader(dataset=dataset, num_workers=0, batch_size=32, shuffle=True)
+    loader = DataLoader(dataset=dataset, num_workers=0, batch_size=1, shuffle=True)
     LR_ , HR_ = next(iter(loader))
     img = LR_[0]
+    print(img.size())
     label = HR_[0]
+    print(label.size())
     fig, ax = plt.subplots(1, 2, figsize=(15, 15))
     ax[0].imshow(label.permute(1, 2, 0))
     ax[0].title.set_text("HR Image")
