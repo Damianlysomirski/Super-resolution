@@ -131,3 +131,6 @@ dmypy.json
 # IDEs
 .idea/
 .vscode/
+
+#Big dataset
+/resources/DIV2K

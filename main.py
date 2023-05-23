@@ -26,7 +26,7 @@ from utils import load_checkpoint, plot_psnr, plot_loss, psnr, ssim
 #     sys.exit(app.exec_())
 
 def main():
-    epochs = 1000
+    epochs = 4000
     scale_factor = 3
 
     #Define datasets
@@ -202,7 +202,7 @@ def test_single_and_compare_3_images(HR_image_path):
     ax[2].title.set_text(model_name)
     ax[2].set_xlabel('psnr: %f' % psnr2)
 
-    plt.savefig("./results/comparison_3_images_" + model_name + "_" + d1 +"_scale_factor_" + str(scale_factor)  + ".png")
+    plt.savefig("./results/comparison_3_images_" + model_name + "_" + d1 +"_scale_factor_" + str(scale_factor)  +"_1000_epochs" + ".png")
     plt.show()
     plt.close()
 
@@ -287,12 +287,13 @@ def test_single_and_compare_4_images(HR_image_path):
     ax[1, 1].title.set_text(model_name)
     ax[1, 1].set_xlabel('psnr: %f, ssim: %f' % (psnr2, ssim2))
 
-    plt.savefig("./results/comparison_4_images" + model_name + "_" + d1 +"_scale_factor_" + str(scale_factor)  + ".png")
+    plt.savefig("./results/comparison_4_images" + model_name + "_" + d1 +"_scale_factor_" + str(scale_factor) + "_1000_epochs"  + ".png")
     plt.show()
     plt.close()
 
 if __name__ == "__main__":
     #show_pair_of_images(4, "./resources/Set5/", "test", 0)
     #main()
-    #test_multiple()
-    test_single_and_compare_4_images("./resources/Set5/butterfly.png")
+    test_multiple()
+    #test_single_and_compare_4_images("./resources/Set5/butterfly.png")
+    #test_single_and_compare_3_images("./resources/Set5/butterfly.png")
