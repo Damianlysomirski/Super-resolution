@@ -1,11 +1,9 @@
 # Super-resolution
 
-
 # This is a master's thesis project
 # By Damian Łysomirski
 
 ## Downloading and instalation
-
 ```
 # Clone repo
 git clone 
@@ -26,3 +24,6 @@ source ./venv/bin/activate
 # Installing requirements
 pip install -r requirements.txt
 ``` 
+
+## Results of VDSR 1000 epoch training
+![alt text](./results/comparison_4_imagesVDSR_23_05_2023_scale_factor_3.png)
