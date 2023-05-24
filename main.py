@@ -26,11 +26,11 @@ from utils import load_checkpoint, plot_psnr, plot_loss, psnr, ssim
 #     sys.exit(app.exec_())
 
 def main():
-    epochs = 4000
+    epochs = 300
     scale_factor = 3
 
     #Define datasets
-    train_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/BSDS200/", crop_size=66, mode="train")
+    train_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/DIV2K/", crop_size=66, mode="train")
     eval_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/Set5/", crop_size=66, mode="valid")
 
     #Define dataloaders
@@ -50,7 +50,7 @@ def main():
     model = VDSR(scale_factor=scale_factor).to(device)
 
     # Optimizer.
-    optimizer = optim.Adam(model.parameters(), lr = 0.0001)
+    optimizer = optim.Adam(model.parameters(), lr = 0.001)
 
     #Normaly use
     #criterion = nn.MSELoss
@@ -80,7 +80,7 @@ def main():
             # dd/mm/YY
             d1 = today.strftime("%d_%m_%Y")
             model_name = model.__class__.__name__
-            model_save_name = model_name + "_" + d1 + "_scale_factor_" + str(scale_factor) + "_epochs_" + str(epochs) + ".pt"
+            model_save_name = model_name + "_" + d1 + "_scale_factor_" + str(scale_factor) + "_epochs_" + str(epochs) + "_DIV2K" + ".pt"
             
             #path = F"{model_save_name}" 
             path = "./checkpoints/" + model_save_name
@@ -112,7 +112,7 @@ def test_multiple():
     model = VDSR(scale_factor=3).to(device)
     optimizer = optim.Adam(model.parameters(), lr = 0.0001)
     print("Build VDSR model successfully.")
-    checkpoint_path = "./checkpoints/VDSR_23_05_2023_scale_factor_3_epochs_1000.pt"
+    checkpoint_path = "./checkpoints/VDSR_23_05_2023_scale_factor_3_epochs_100_DIV2K.pt"
     load_checkpoint(checkpoint_path, model, optimizer)
     print("Loaded model successfully.")
     criterion = nn.MSELoss(reduction="sum")
@@ -138,7 +138,7 @@ def test_single_and_compare_3_images(HR_image_path):
     model = VDSR(scale_factor=3).to(device)
     optimizer = optim.Adam(model.parameters(), lr = 0.0001)
     print("Build VDSR model successfully.")
-    checkpoint_path = "./checkpoints/VDSR_23_05_2023_scale_factor_3_epochs_1000.pt"
+    checkpoint_path = "./checkpoints/VDSR_23_05_2023_scale_factor_3_epochs_100_DIV2K.pt"
     load_checkpoint(checkpoint_path, model, optimizer)
     print("Loaded model successfully.")
     criterion = nn.MSELoss(reduction="sum")
@@ -211,7 +211,7 @@ def test_single_and_compare_4_images(HR_image_path):
     model = VDSR(scale_factor=3).to(device)
     optimizer = optim.Adam(model.parameters(), lr = 0.0001)
     print("Build VDSR model successfully.")
-    checkpoint_path = "./checkpoints/VDSR_23_05_2023_scale_factor_3_epochs_1000.pt"
+    checkpoint_path = "./checkpoints/VDSR_24_05_2023_scale_factor_3_epochs_300_DIV2K.pt"
     load_checkpoint(checkpoint_path, model, optimizer)
     print("Loaded model successfully.")
     criterion = nn.MSELoss(reduction="sum")
@@ -292,8 +292,8 @@ def test_single_and_compare_4_images(HR_image_path):
     plt.close()
 
 if __name__ == "__main__":
-    #show_pair_of_images(4, "./resources/Set5/", "test", 0)
+    show_pair_of_images(4, "./resources/Set5/", "train", )
     #main()
-    test_multiple()
+    #test_multiple()
     #test_single_and_compare_4_images("./resources/Set5/butterfly.png")
     #test_single_and_compare_3_images("./resources/Set5/butterfly.png")
