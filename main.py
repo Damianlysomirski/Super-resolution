@@ -79,8 +79,6 @@ def main():
         val_loss.append(val_epoch_loss)
         val_psnr.append(val_epoch_psnr)
 
-        train_epoch_psnr > best_psnr
-
         if (val_epoch_psnr > best_psnr):
             best_psnr = val_epoch_psnr
             today = date.today()

@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import torch
-from torchmetrics import StructuralSimilarityIndexMeasure
+# from torchmetrics import StructuralSimilarityIndexMeasure
 import matplotlib.pyplot as plt
 
 def psnr(label, outputs, max_val=1.):
@@ -22,12 +22,12 @@ def psnr(label, outputs, max_val=1.):
         PSNR = 20 * math.log10(max_val / rmse)
         return PSNR
 
-def ssim(label, output):
-    ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
-    label = label.cpu()
-    output = output.cpu()
-    ssim_ = ssim(output, label)
-    return ssim_
+# def ssim(label, output):
+#     ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
+#     label = label.cpu()
+#     output = output.cpu()
+#     ssim_ = ssim(output, label)
+#     return ssim_
     
 def check_device():
     print(torch.cuda.is_available())
