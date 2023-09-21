@@ -12,7 +12,7 @@ from models.SRCNN import SRCNN
 from models.ESPCN import ESPCN
 from models.Bicubic import Bicubic
 from validate import validate
-from utils import psnr
+from utils import psnr, load_checkpoint
 from tqdm import tqdm
 
 def train(model, dataloader, optimizer, criterion, device):
@@ -50,13 +50,6 @@ def train(model, dataloader, optimizer, criterion, device):
     final_psnr = running_psnr/len(dataloader)
     return final_loss, final_psnr
 
-
-def training_mode():
-    pass
-    
-def load_checkpoint():
-    pass
-
 """
 Function to build model depending on parsing arguments
 """
@@ -83,7 +76,7 @@ def define_criterion(model_name):
     if (model_name == "VDSR"):
         criterion = nn.MSELoss(reduction="sum")
     else:
-        criterion = nn.MSELoss
+        criterion = nn.MSELoss()
     return criterion
 
 
@@ -139,8 +132,14 @@ def main() -> None:
         help="Mode of training: training_from_the_begining or training_from_the_checkpoint",
         required=True,
         default="training_from_the_beginning"
-
     )
+    parser.add_argument(
+        "-p",
+        "--checkpoint_path",
+        help="Path to checkpoint if the mode is training_from_checkpoint",
+        default=None
+    )
+
     args = parser.parse_args()
 
     # Define the number of training epochs
@@ -158,7 +157,7 @@ def main() -> None:
     model = build_model(args.model, args.scale, device)
 
     # Define datasets
-    train_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/DIV2K/",
+    train_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/BSDS200/",
                                crop_size=scale_factor*CROP_SIZE_CONST, mode="train")
     eval_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/Set5/",
                               crop_size=scale_factor*CROP_SIZE_CONST, mode="valid")
@@ -178,23 +177,48 @@ def main() -> None:
     # Define mode of training: training_from_the_begining or training_from_checkpoint
     training_mode = args.training_mode
     print("Training mode: " +str(training_mode))
-    if (args.training_mode == "training_from_the_checkpoint"):
-        pass
+
+    """
+    Check for load
+    """
+    if ((str(args.training_mode)) == "training_from_checkpoint"):
+        if (str(args.checkpoint_path) is None):
+            raise ValueError(
+                "The path to the checkpoint has not been provided")
+        else:
+            try:
+                checkpoint = torch.load(args.checkpoint_path)
+                model.load_state_dict(checkpoint['model_state_dict'])
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                epoch = checkpoint['epoch']
+                scale_factor = checkpoint['model_scale_factor']
+                model_name = checkpoint['model_name']
+                train_loss = checkpoint['train_loss']
+                train_psnr = checkpoint['train_psnr']
+                val_loss = checkpoint['val_loss']
+                val_psnr = checkpoint['val_psnr']
+                best_valid_loss = checkpoint['best_valid_loss']
+                epochs += epoch
+                start_epoch = epoch
+
+            except ValueError:
+                print("Oops! Passed wrong path to the checkpoint, check it and try again")
     else:
-        pass
+        start_epoch = 0
+        train_loss, val_loss = [], []
+        train_psnr, val_psnr = [], []
+        best_valid_loss = 1
 
-    train_loss, val_loss = [], []
-    train_psnr, val_psnr = [], []
-    best_valid_loss = 0
-
-    for epoch in range(epochs):
+    for epoch in range(start_epoch, epochs):
         print(f"Epoch {epoch + 1} of {epochs}")
 
         train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device)
         val_epoch_loss, val_epoch_psnr = validate(model, valid_loader, optimizer, criterion, device)
 
-        print(f"Train PSNR: {train_epoch_psnr:.3f}")
-        print(f"Val PSNR: {val_epoch_psnr:.3f}")
+        # print(f"Train PSNR: {train_epoch_psnr:.3f}")
+        # print(f"Val PSNR: {val_epoch_psnr:.3f}")
+        print(f"Val LOSS: {val_epoch_loss:.16f}")
+        print(f"Val PSNR: {val_epoch_psnr:.16f}")
 
         train_loss.append(train_epoch_loss)
         train_psnr.append(train_epoch_psnr)
@@ -206,7 +230,7 @@ def main() -> None:
             best_valid_loss = val_epoch_loss
 
             model_name = model.__class__.__name__
-            model_save_name = model_name + "_" + "_sf_" + str(scale_factor) + ".pt"
+            model_save_name = model_name + "_" + "sf_" + str(scale_factor) + "_epoch_" + str(epoch) + ".pt"
             
             path = "./checkpoints_new/" + model_save_name
 
@@ -220,6 +244,11 @@ def main() -> None:
                     'train_psnr' : train_epoch_psnr,
                     'val_epoch_loss': val_epoch_loss,
                     'val_epoch_psnr': val_epoch_psnr,
+                    'train_loss' : train_loss,
+                    'val_loss': val_loss,
+                    'train_psnr': train_psnr,
+                    'val_psnr': val_psnr,
+                    'best_valid_loss': best_valid_loss
                     }, path)
             
             print("New checkpoint created")

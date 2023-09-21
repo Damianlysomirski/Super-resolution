@@ -18,7 +18,7 @@ import torch.nn as nn
 import torchvision
 from train import train
 from validate import validate
-from utils import load_checkpoint, plot_psnr, plot_loss, psnr, ssim
+from utils import load_checkpoint, plot_psnr, plot_loss, psnr
 
 # def test_window():
 #     app = QApplication([])
@@ -27,7 +27,7 @@ from utils import load_checkpoint, plot_psnr, plot_loss, psnr, ssim
 #     sys.exit(app.exec_())
 
 def main():
-    epochs = 1000
+    epochs = 3
     scale_factor = 3
 
     #Define datasets
@@ -68,7 +68,7 @@ def main():
     for epoch in range(epochs):
         print(f"Epoch {epoch + 1} of {epochs}")
 
-        train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device, scaler)
+        train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device)
         val_epoch_loss, val_epoch_psnr = validate(model, valid_loader, optimizer, criterion, device)
 
         print(f"Train PSNR: {train_epoch_psnr:.3f}")
@@ -299,7 +299,7 @@ def test_single_and_compare_4_images(HR_image_path):
 
 if __name__ == "__main__":
     #show_pair_of_images(3, "./resources/Set5/", "train", crop_size=66)
-    #main()
+    main()
     #test_multiple()
     #test_single_and_compare_4_images("./resources/Set5/butterfly.png")
-    test_single_and_compare_3_images("./resources/Set5/butterfly.png")
+    #test_single_and_compare_3_images("./resources/Set5/butterfly.png")
