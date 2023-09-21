@@ -13,8 +13,9 @@ def validate(model, dataloader, optimizer, criterion, device):
             image_data = data[0].to(device)
             label = data[1].to(device)
             
-            outputs = model(image_data)
-            loss = criterion(outputs, label)
+            with torch.cuda.amp.autocast():
+                outputs = model(image_data)
+                loss = criterion(outputs, label)
             # add loss of each item (total items in a batch = batch size) 
             running_loss += loss.item()
             # calculate batch psnr (once every `batch_size` iterations)

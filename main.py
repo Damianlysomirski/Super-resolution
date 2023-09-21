@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 #from models import Bicubic, ESPCN, SRCNN, VDSR
 from models.VDSR import VDSR
 from models.Bicubic import Bicubic
+from models.ESPCN import ESPCN
 from PIL import Image
 import torch.optim as optim
 import torch.nn as nn
@@ -26,17 +27,16 @@ from utils import load_checkpoint, plot_psnr, plot_loss, psnr, ssim
 #     sys.exit(app.exec_())
 
 def main():
-    epochs = 300
+    epochs = 1000
     scale_factor = 3
 
     #Define datasets
-    train_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/DIV2K/", crop_size=66, mode="train")
+    train_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/BSDS200/", crop_size=66, mode="train")
     eval_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/Set5/", crop_size=66, mode="valid")
 
     #Define dataloaders
     train_loader = DataLoader(dataset=train_dataset, num_workers=0, batch_size=64, shuffle=True)
     valid_loader = DataLoader(dataset=eval_dataset, num_workers=0, batch_size=64, shuffle=False)
-
 
     train_loss, val_loss = [], []
     train_psnr, val_psnr = [], []
@@ -47,25 +47,33 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = VDSR(scale_factor=scale_factor).to(device)
+    model = ESPCN(scale_factor=scale_factor).to(device)
 
     # Optimizer.
     optimizer = optim.Adam(model.parameters(), lr = 0.001)
+    # optimizer = optim.SGD(model.parameters(),
+    #                       lr=1e-2,
+    #                       momentum=0.9,
+    #                       weight_decay=1e-4)
+
+    #Scaller
+    scaler = torch.cuda.amp.GradScaler()
 
     #Normaly use
-    #criterion = nn.MSELoss
+    criterion = nn.MSELoss(reduction="mean")
 
     #Only used for VDSR
-    criterion = nn.MSELoss(reduction="sum")
+    #criterion = nn.MSELoss(reduction="sum")
 
     for epoch in range(epochs):
         print(f"Epoch {epoch + 1} of {epochs}")
 
-        train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device)
+        train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device, scaler)
         val_epoch_loss, val_epoch_psnr = validate(model, valid_loader, optimizer, criterion, device)
 
         print(f"Train PSNR: {train_epoch_psnr:.3f}")
         print(f"Val PSNR: {val_epoch_psnr:.3f}")
+
         train_loss.append(train_epoch_loss)
         train_psnr.append(train_epoch_psnr)
         val_loss.append(val_epoch_loss)
@@ -80,7 +88,7 @@ def main():
             # dd/mm/YY
             d1 = today.strftime("%d_%m_%Y")
             model_name = model.__class__.__name__
-            model_save_name = model_name + "_" + d1 + "_scale_factor_" + str(scale_factor) + "_epochs_" + str(epochs) + "_DIV2K" + ".pt"
+            model_save_name = model_name + "_" + d1 + "_scale_factor_" + str(scale_factor) + "_epochs_" + str(epochs) + "_BSDS200" + ".pt"
             
             #path = F"{model_save_name}" 
             path = "./checkpoints/" + model_save_name
@@ -135,13 +143,13 @@ def test_multiple():
 
 def test_single_and_compare_3_images(HR_image_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = VDSR(scale_factor=3).to(device)
+    model = ESPCN(scale_factor=3).to(device)
     optimizer = optim.Adam(model.parameters(), lr = 0.0001)
     print("Build VDSR model successfully.")
-    checkpoint_path = "./checkpoints/VDSR_23_05_2023_scale_factor_3_epochs_100_DIV2K.pt"
+    checkpoint_path = "./checkpoints/ESPCN_scale_factor_3_epochs_20000_BSDS200_adam_scaler.pt"
     load_checkpoint(checkpoint_path, model, optimizer)
     print("Loaded model successfully.")
-    criterion = nn.MSELoss(reduction="sum")
+    criterion = nn.MSELoss(reduction="mean")
 
     model.eval()
     scale_factor = 3
@@ -202,7 +210,7 @@ def test_single_and_compare_3_images(HR_image_path):
     ax[2].title.set_text(model_name)
     ax[2].set_xlabel('psnr: %f' % psnr2)
 
-    plt.savefig("./results/comparison_3_images_" + model_name + "_" + d1 +"_scale_factor_" + str(scale_factor)  +"_1000_epochs" + ".png")
+    plt.savefig("./results/comparison_3_images_" + model_name + "_" + d1 +"_scale_factor_" + str(scale_factor)  +"_1000_epochs_scaler" + ".png")
     plt.show()
     plt.close()
 
@@ -292,8 +300,8 @@ def test_single_and_compare_4_images(HR_image_path):
     plt.close()
 
 if __name__ == "__main__":
-    show_pair_of_images(4, "./resources/Set5/", "train", )
+    #show_pair_of_images(3, "./resources/Set5/", "train", crop_size=66)
     #main()
     #test_multiple()
     #test_single_and_compare_4_images("./resources/Set5/butterfly.png")
-    #test_single_and_compare_3_images("./resources/Set5/butterfly.png")
+    test_single_and_compare_3_images("./resources/Set5/butterfly.png")

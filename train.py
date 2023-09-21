@@ -1,4 +1,4 @@
-from utils import psnr
+#from utils import psnr
 from tqdm import tqdm
 from dataset import SR_Dataset
 from torch.utils.data import DataLoader
@@ -12,9 +12,7 @@ from models.SRCNN import SRCNN
 from models.ESPCN import ESPCN
 from models.Bicubic import Bicubic
 
-
-
-def train(model, dataloader, optimizer, criterion, device):
+def train(model, dataloader, optimizer, criterion, device, scaler):
     model.train()
     running_loss = 0.0
     running_psnr = 0.0
@@ -26,15 +24,24 @@ def train(model, dataloader, optimizer, criterion, device):
         
         # Zero grad the optimizer.
         optimizer.zero_grad()
-
-        outputs = model(image_data)
-        loss = criterion(outputs, label)
+        
+        #Mixed precision training
+        with torch.cuda.amp.autocast():
+            outputs = model(image_data)
+            loss = criterion(outputs, label)
+        
         # Backpropagation.
-        loss.backward()
+        #loss.backward()
         # Update the parameters.
-        optimizer.step()
+        #optimizer.step()
+
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
         # Add loss of each item (total items in a batch = batch size).
         running_loss += loss.item()
+        
         # Calculate batch psnr (once every `batch_size` iterations).
         batch_psnr =  psnr(label, outputs)
         running_psnr += batch_psnr
@@ -108,8 +115,6 @@ def main() -> None:
 
     #Define optimizer and scheduler
 
-
-
 def build_model(model, scale_factor, device):
     if(model == "VDSR"):
         model = VDSR(scale_factor).to(device)
@@ -140,13 +145,12 @@ def define_optimizer_and_scheduler(model):
         #TODO
         pass
     elif(model == "ESPCN"):
-        pass
-        #TODO
+        optimizer = optim.SGD(model.parameters(),
+                          lr=1e-2,
+                          momentum=-0.9,
+                          weight_decay=1e-4)
 
-
-
-
-
+        return optimizer
 
 if __name__ == "__main__":
     main()
