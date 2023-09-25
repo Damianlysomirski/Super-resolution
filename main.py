@@ -1,5 +1,3 @@
-# from PyQt5.QtWidgets import QApplication
-# from test_window import TestWindow
 import matplotlib.pyplot as plt
 import torch
 import time

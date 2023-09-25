@@ -6,14 +6,17 @@ import torch
 import argparse
 import torch.nn as nn
 import torch.optim as optim
-
 from models.VDSR import VDSR
 from models.SRCNN import SRCNN
 from models.ESPCN import ESPCN
 from models.Bicubic import Bicubic
 from validate import validate
-from utils import psnr, load_checkpoint
+from utils import psnr
 from tqdm import tqdm
+
+
+TRAIN_DATASET = './resources/BSDS200/'
+EVAL_DATASET = './resources/Set5/'
 
 def train(model, dataloader, optimizer, criterion, device):
     model.train()
@@ -53,14 +56,14 @@ def train(model, dataloader, optimizer, criterion, device):
 """
 Function to build model depending on parsing arguments
 """
-def build_model(model, scale_factor, device):
-    if (model == "VDSR"):
+def build_model(model_name, scale_factor, device):
+    if (model_name == "VDSR"):
         model = VDSR(scale_factor).to(device)
         print("Built model VDSR successfully !")
-    elif (model == "SRCNN"):
+    elif (model_name == "SRCNN"):
         model = SRCNN(scale_factor).to(device)
         print("Built model SRCNN successfully !")
-    elif (model == "ESPCN"):
+    elif (model_name == "ESPCN"):
         model == ESPCN(scale_factor).to(device)
         print("Built model ESPCN successfully !")
     else:
@@ -80,20 +83,19 @@ def define_criterion(model_name):
     return criterion
 
 
-# def define_optimizer(model):
-#     optimizer = optim.Adam(model.parameters(), lr=0.0001)
-#     if (model == "VDSR"):
-#         # TODO
-#         pass
-#     elif (model == "SRCNN"):
-#         # TODO
-#         pass
-#     elif (model == "ESPCN"):
-#         optimizer = optim.SGD(model.parameters(),
-#                               lr=1e-2,
-#                               momentum=-0.9,
-#                               weight_decay=1e-4)
-#     return optimizer
+def define_optimizer(model_name, model):
+    if (model_name == "VDSR"):
+        optimizer = optim.Adam(model.parameters(), lr=0.0001)
+        pass
+    elif (model_name == "SRCNN"):
+        optimizer = optim.Adam(model.parameters(), lr=0.0001)
+        pass
+    elif (model_name == "ESPCN"):
+        optimizer = optim.SGD(model.parameters(),
+                              lr=1e-2,
+                              momentum=-0.9,
+                              weight_decay=1e-4)
+    return optimizer
 
 def main() -> None:
     CROP_SIZE_CONST = 22
@@ -117,7 +119,6 @@ def main() -> None:
         type=int,
         default=3
     )
-
     parser.add_argument(
         "-e",
         "--epochs",
@@ -157,9 +158,9 @@ def main() -> None:
     model = build_model(args.model, args.scale, device)
 
     # Define datasets
-    train_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/BSDS200/",
+    train_dataset = SR_Dataset(scale_factor=scale_factor, path=TRAIN_DATASET,
                                crop_size=scale_factor*CROP_SIZE_CONST, mode="train")
-    eval_dataset = SR_Dataset(scale_factor=scale_factor, path="./resources/Set5/",
+    eval_dataset = SR_Dataset(scale_factor=scale_factor, path=EVAL_DATASET,
                               crop_size=scale_factor*CROP_SIZE_CONST, mode="valid")
 
     # Define dataloaders
@@ -172,7 +173,8 @@ def main() -> None:
     criterion = define_criterion(args.model)
 
     # Define optimizer and scheduler
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    #optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = define_optimizer(args.model, model)
 
     # Define mode of training: training_from_the_begining or training_from_checkpoint
     training_mode = args.training_mode
