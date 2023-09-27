@@ -14,7 +14,6 @@ from validate import validate
 from utils import psnr
 from tqdm import tqdm
 
-
 TRAIN_DATASET = './resources/BSDS200/'
 EVAL_DATASET = './resources/Set5/'
 
@@ -64,7 +63,7 @@ def build_model(model_name, scale_factor, device):
         model = SRCNN(scale_factor).to(device)
         print("Built model SRCNN successfully !")
     elif (model_name == "ESPCN"):
-        model == ESPCN(scale_factor).to(device)
+        model = ESPCN(scale_factor).to(device)
         print("Built model ESPCN successfully !")
     else:
         raise ValueError(
@@ -91,10 +90,11 @@ def define_optimizer(model_name, model):
         optimizer = optim.Adam(model.parameters(), lr=0.0001)
         pass
     elif (model_name == "ESPCN"):
-        optimizer = optim.SGD(model.parameters(),
-                              lr=1e-2,
-                              momentum=-0.9,
-                              weight_decay=1e-4)
+        # optimizer = optim.SGD(model.parameters(),
+        #                       lr=1e-2,
+        #                       momentum=0.9,
+        #                       weight_decay=1e-4)
+        optimizer = optim.Adam(model.parameters(), lr=0.0001)
     return optimizer
 
 def main() -> None:
@@ -197,8 +197,8 @@ def main() -> None:
                 model_name = checkpoint['model_name']
                 train_loss = checkpoint['train_loss']
                 train_psnr = checkpoint['train_psnr']
-                val_loss = checkpoint['val_loss']
-                val_psnr = checkpoint['val_psnr']
+                val_loss_dict = checkpoint['val_loss']
+                val_psnr_dict = checkpoint['val_psnr']
                 best_valid_loss = checkpoint['best_valid_loss']
                 epochs += epoch
                 start_epoch = epoch
@@ -207,53 +207,59 @@ def main() -> None:
                 print("Oops! Passed wrong path to the checkpoint, check it and try again")
     else:
         start_epoch = 0
-        train_loss, val_loss = [], []
-        train_psnr, val_psnr = [], []
+        train_loss, train_psnr = [], []
+        val_psnr_dict, val_loss_dict = {}, {}
         best_valid_loss = 1
 
-    for epoch in range(start_epoch, epochs):
-        print(f"Epoch {epoch + 1} of {epochs}")
+        #Lets try with dict
+
+    for epoch in range(start_epoch, epochs + 1):
+        print(f"Epoch {epoch} of {epochs}")
 
         train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device)
-        val_epoch_loss, val_epoch_psnr = validate(model, valid_loader, optimizer, criterion, device)
-
-        # print(f"Train PSNR: {train_epoch_psnr:.3f}")
-        # print(f"Val PSNR: {val_epoch_psnr:.3f}")
-        print(f"Val LOSS: {val_epoch_loss:.16f}")
-        print(f"Val PSNR: {val_epoch_psnr:.16f}")
-
         train_loss.append(train_epoch_loss)
         train_psnr.append(train_epoch_psnr)
-        val_loss.append(val_epoch_loss)
-        val_psnr.append(val_epoch_psnr)
 
-        #Save only the epoch with least loss
-        if (val_epoch_loss < best_valid_loss):
-            best_valid_loss = val_epoch_loss
-
-            model_name = model.__class__.__name__
-            model_save_name = model_name + "_" + "sf_" + str(scale_factor) + "_epoch_" + str(epoch) + ".pt"
+        if (epoch % 25 == 0):
+        #Validation every 25 epoch
+            val_epoch_loss, val_epoch_psnr = validate(model, valid_loader, optimizer, criterion, device)
+            val_psnr_dict[epoch] = val_epoch_psnr
+            val_loss_dict[epoch] = val_epoch_loss
             
-            path = "./checkpoints_new/" + model_save_name
+            # print(f"Train PSNR: {train_epoch_psnr:.3f}")
+            # print(f"Val PSNR: {val_epoch_psnr:.3f}")
+            print(f"Val LOSS: {val_epoch_loss:.16f}")
+            print(f"Val PSNR: {val_epoch_psnr:.16f}")
 
-            torch.save({
-                    'epoch': epoch,
-                    'model_name': model_name,
-                    'model_scale_factor': scale_factor,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'train_epoch_loss': train_epoch_loss,
-                    'train_psnr' : train_epoch_psnr,
-                    'val_epoch_loss': val_epoch_loss,
-                    'val_epoch_psnr': val_epoch_psnr,
-                    'train_loss' : train_loss,
-                    'val_loss': val_loss,
-                    'train_psnr': train_psnr,
-                    'val_psnr': val_psnr,
-                    'best_valid_loss': best_valid_loss
-                    }, path)
-            
-            print("New checkpoint created")
+            #Save only the epoch with least loss
+            if (val_epoch_loss < best_valid_loss):
+                best_valid_loss = val_epoch_loss
+
+                model_name = model.__class__.__name__
+                model_save_name = model_name + "_" + "sf_" + str(scale_factor) + "_epoch_" + str(epoch) + ".pt"
+                
+                path = "./checkpoints_new/" + model_save_name
+
+                torch.save({
+                        'epoch': epoch,
+                        'model_name': model_name,
+                        'model_scale_factor': scale_factor,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'train_epoch_loss': train_epoch_loss,
+                        'train_psnr' : train_epoch_psnr,
+                        'val_epoch_loss': val_epoch_loss,
+                        'val_epoch_psnr': val_epoch_psnr,
+                        'train_loss' : train_loss,
+                        'val_loss': val_loss_dict,
+                        'train_psnr': train_psnr,
+                        'val_psnr': val_psnr_dict,
+                        'best_valid_loss': best_valid_loss
+                        }, path)
+                
+                print("New checkpoint created")
+
+    print(val_psnr_dict)        
 
 if __name__ == "__main__":
     main()
