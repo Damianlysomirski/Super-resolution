@@ -1,23 +1,12 @@
-from utils import psnr
-from tqdm import tqdm
-from dataset import SR_Dataset
-from torch.utils.data import DataLoader
 import torch
 import argparse
-import torch.nn as nn
-import torch.optim as optim
-from models.VDSR import VDSR
-from models.SRCNN import SRCNN
-from models.ESPCN import ESPCN
-from models.Bicubic import Bicubic
-from validate import validate
-from utils import psnr, plot_psnr_new, plot_loss_new
+import models
+from utils import *
 from PIL import Image
-from torchvision.transforms import Compose, RandomCrop, ToTensor, Resize, ToPILImage, GaussianBlur
-from train import build_model, define_optimizer, define_criterion
+from torchvision.transforms import Compose, ToTensor
+from train import build_model
 import torchvision
 import matplotlib.pyplot as plt
-from torchmetrics import StructuralSimilarityIndexMeasure 
 
 BUTTERFLY = './resources/Set5/butterfly.png'
 
@@ -36,13 +25,13 @@ def test_single_image(model, model_name, scale_factor, image):
     original = data_transform(original)
     resize_image = data_transform(resize_image).unsqueeze(0).to(device)
     predicted = model(resize_image).squeeze(0)
-    bicubic = Bicubic(scale_factor=scale_factor).to(device)
+    bicubic = models.Bicubic(scale_factor=scale_factor).to(device)
     bicubic = bicubic(resize_image).squeeze(0)
 
     psnr1 = psnr(original, bicubic)
     psnr2 = psnr(original, predicted)
 
-    ssim1 = StructuralSimilarityIndexMeasure(original, bicubic)
+    ssim1 = ssim(original, bicubic)
     print(ssim1)
     
     torchvision.utils.save_image(bicubic, './results/bicubic.png')
@@ -70,25 +59,7 @@ def test_single_image(model, model_name, scale_factor, image):
     ax[2].set_xlabel('psnr: %f' % psnr2)
     plt.show()
 
-    #Dodać jeszcze zapisywanie plotu
-                               
-"""
-Function to build model depending on parsing arguments
-"""
-def build_model(model, scale_factor, device):
-    if (model == "VDSR"):
-        model = VDSR(scale_factor).to(device)
-        print("Built model VDSR successfully !")
-    elif (model == "SRCNN"):
-        model = SRCNN(scale_factor).to(device)
-        print("Built model SRCNN successfully !")
-    elif (model == "ESPCN"):
-        model = ESPCN(scale_factor).to(device)
-        print("Built model ESPCN successfully !")
-    else:
-        raise ValueError(
-            "Unsupported neural network model, please use 'VDSR', 'SRCNN' or 'ESPCN'.")
-    return model
+    #Dodać jeszcze zapisywanie plotu                              
 
 def main () -> None:
     parser = argparse.ArgumentParser(
@@ -126,31 +97,23 @@ def main () -> None:
     # Define model
     model = build_model(args.model, args.scale, device)
 
-     # Define loss criterion
-    criterion = define_criterion(args.model)
-
-    # Define optimizer and scheduler
-    #optimizer = optim.Adam(model.parameters(), lr=0.0001)
-    optimizer = define_optimizer(args.model, model)
-
     try:
-        #Nie wiem czy tutaj wszystko tak naprawde jest nam potrzebne 
         checkpoint = torch.load(args.checkpoint_path)
         model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch']
         scale_factor = checkpoint['model_scale_factor']
         model_name = checkpoint['model_name']
         train_loss = checkpoint['train_loss']
         train_psnr = checkpoint['train_psnr']
         val_loss_dict = checkpoint['val_loss']
         val_psnr_dict = checkpoint['val_psnr']
-        best_valid_loss = checkpoint['best_valid_loss']
 
-    except ValueError:
-        print("Oops! Passed wrong path to the checkpoint, check it and try again")
+    except RuntimeError:
+        print("!!! ERROR !!!")
+        print("Oops! Passed wrong path to the checkpoint, check it and try again !!!")
+        print("Check value difference between the given scale_factor in the path and the given one in arg_parse !!!")
+        print("!!! ERROR !!!")
 
-    print("Successfully loaded model !")
+    print("Successfully loaded model: " + str(model_name))
     plot_loss_new(train_loss, val_loss_dict, str(args.model) + "_scale_factor: " + str(args.scale))
     plot_psnr_new(train_psnr, val_psnr_dict, str(args.model) + "_scale_factor: " + str(args.scale))
     test_single_image(model, args.model, args.scale, BUTTERFLY)

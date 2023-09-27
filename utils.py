@@ -1,58 +1,85 @@
 import math
 import numpy as np
-import torch
 import matplotlib.pyplot as plt
+import torch
+
 
 def psnr(label, outputs, max_val=1.):
     """
-    Compute Peak Signal to Noise Ratio (the higher the better).
-    PSNR = 20 * log10(MAXp) - 10 * log10(MSE).
+    Compute Peak Signal to Noise Ratio (PSNR), a measure of image quality.
+    
+    Parameters:
+    - label (Tensor): Ground truth values (e.g., target image).
+    - outputs (Tensor): Predicted values (e.g., generated image).
+    - max_val (float): Maximum possible pixel value (default is 1.0 for normalized images).
+
+    Returns:
+    - PSNR (float): Peak Signal to Noise Ratio value.
+    
+    PSNR = 20 * log10(max_val) - 10 * log10(MSE)
+    
+    Reference:
     https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio#Definition
-    Note that the output and label pixels (when dealing with images) should
-    be normalized as the `max_val` here is 1 and not 255.
+    
+    Note: Both the label and outputs should be normalized if max_val is 1.
     """
+    # Convert label and outputs tensors to numpy arrays
     label = label.cpu().detach().numpy()
     outputs = outputs.cpu().detach().numpy()
+    
+    # Calculate the pixel-wise difference between outputs and label
     diff = outputs - label
-    rmse = math.sqrt(np.mean((diff) ** 2))
+    
+    # Calculate the root mean squared error (RMSE)
+    rmse = math.sqrt(np.mean(diff ** 2))
+    
+    # Handle the case where RMSE is zero to avoid division by zero
     if rmse == 0:
-        return 100
+        return 100.0
     else:
+        # Calculate PSNR using the formula
         PSNR = 20 * math.log10(max_val / rmse)
         return PSNR
     
-def check_device():
-    print(torch.cuda.is_available())
-    print("\n")
-    print(torch.cuda.current_device())
-    print("\n")
-    print(torch.cuda.device(0))
-    print("\n")
-    print(torch.cuda.device_count())
-    print("\n")
-    print(torch.cuda.get_device_name(0))
 
-# def plot_psnr(train_psnr, val_psnr, model_save_name):
-#     # PSNR plots.
-#     plt.figure(figsize=(10, 7))
-#     plt.plot(train_psnr, color='green', label='train PSNR dB')
-#     plt.plot(val_psnr, color='blue', label='validataion PSNR dB')
-#     plt.xlabel('Epochs')
-#     plt.ylabel('PSNR (dB)')
-#     plt.legend()
-#     plt.savefig("./plots_new/psnr_" + model_save_name +".png")
-#     plt.close()
+def ssim(label, outputs):
+    """
+    Calculate the Structural Similarity Index (SSIM) between two images using PyTorch tensors.
 
-# def plot_loss(train_loss, val_loss, model_save_name):
-#     # Loss plots.
-#     plt.figure(figsize=(10, 7))
-#     plt.plot(train_loss, color='orange', label='train loss')
-#     plt.plot(val_loss, color='red', label='validataion loss')
-#     plt.xlabel('Epochs')
-#     plt.ylabel('Loss')
-#     plt.legend()
-#     plt.savefig("./plots_new/loss_" + model_save_name +".png")
-#     plt.close()
+    Parameters:
+    - label (torch.Tensor): Ground truth image tensor.
+    - outputs (torch.Tensor): Predicted image tensor.
+
+    Returns:
+    - ssim_score (float): SSIM score (between -1 and 1).
+    """
+    # Ensure tensors are on the CPU and in float64 format
+    label = label.cpu().detach().numpy().astype(np.float64)
+    outputs = outputs.cpu().detach().numpy().astype(np.float64)
+
+    # Constants for SSIM calculation
+    C1 = (0.01 * 255) ** 2
+    C2 = (0.03 * 255) ** 2
+
+    # Calculate mean of label and outputs
+    mu_label = np.mean(label)
+    mu_outputs = np.mean(outputs)
+
+    # Calculate variance of label and outputs
+    var_label = np.var(label)
+    var_outputs = np.var(outputs)
+
+    # Calculate covariance between label and outputs using PyTorch
+    covar = torch.tensor(np.cov(label, outputs, rowvar=False))[0, 1].item()
+
+    # SSIM formula components
+    numerator = (2 * mu_label * mu_outputs + C1) * (2 * covar + C2)
+    denominator = (mu_label ** 2 + mu_outputs ** 2 + C1) * (var_label + var_outputs + C2)
+
+    # Calculate SSIM score
+    ssim_score = numerator / denominator
+
+    return ssim_score
 
 
 def plot_psnr_new(train_psnr, val_psnr, name):
@@ -92,16 +119,6 @@ def plot_psnr_new(train_psnr, val_psnr, name):
     # Display the plot
     plt.show()
 
-# def plot_psnr_new(train_psnr, val_psnr, name):
-#     plt.figure(figsize=(10, 7))
-#     plt.plot(train_psnr, color='orange', label='train loss')
-#     x, y = zip(*val_psnr.items())
-#     plt.plot(x, y, color='red', label='validataion loss')
-#     plt.xlabel('Epochs')
-#     plt.ylabel('Loss')
-#     plt.legend()
-#     plt.title(name)
-#     plt.show()
 
 def plot_loss_new(train_loss, val_loss, name):
     """
