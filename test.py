@@ -4,11 +4,31 @@ import models
 from utils import *
 from PIL import Image
 from torchvision.transforms import Compose, ToTensor
-from train import build_model
+from train import build_model, define_criterion, define_optimizer
 import torchvision
 import matplotlib.pyplot as plt
+from dataset import SR_Dataset
+from torch.utils.data import DataLoader
+from validate import validate
+from models.Bicubic import Bicubic
+import time
 
 BUTTERFLY = './resources/Set5/butterfly.png'
+ZEBRA = './resources/Set14/zebra.png'
+BABY = './resources/Set5/baby.png'
+
+def test_set(model, scale_factor, optimizer, criterion, device, set_name):
+    model.eval()
+    bicubic = Bicubic(scale_factor=scale_factor).to(device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    test_dataset = SR_Dataset(scale_factor=3, path=f"./resources/{set_name}/", crop_size=0, mode="test")
+    test_loader =  DataLoader(dataset=test_dataset, num_workers=0, batch_size=1, shuffle=False)
+    _, test_psnr, test_ssim = validate(model, test_loader, optimizer, criterion, device)
+    _, bicubic_psnr, bicubic_ssim = validate(bicubic, test_loader, optimizer, criterion, device)
+    print(f"Test {set_name} PSNR for model: {test_psnr:.3f}")
+    print(f"Test {set_name} PSNR for bicubic: {bicubic_psnr:.3f}")
+    print(f"Test {set_name} SSIM for model: {test_ssim:.3f}")
+    print(f"Test {set_name} SSIM for bicubic: {bicubic_ssim:.3f}")
 
 def test_single_image(model, model_name, scale_factor, image):
     model.eval()
@@ -22,45 +42,55 @@ def test_single_image(model, model_name, scale_factor, image):
     data_transform = Compose([ToTensor()]) 
     original = original.resize((int(w), int(h)), Image.Resampling.BICUBIC)
     resize_image = original.resize((int(w/scale_factor), int(h/scale_factor)), Image.Resampling.BICUBIC) 
-    original = data_transform(original)
-    resize_image = data_transform(resize_image).unsqueeze(0).to(device)
-    predicted = model(resize_image).squeeze(0)
-    bicubic = models.Bicubic(scale_factor=scale_factor).to(device)
-    bicubic = bicubic(resize_image).squeeze(0)
 
+    original = data_transform(original).unsqueeze(0)
+    resize_image = data_transform(resize_image).unsqueeze(0).to(device)
+    predicted = model(resize_image)
+    bicubic = models.Bicubic(scale_factor=scale_factor).to(device)
+    bicubic = bicubic(resize_image)
+    
     psnr1 = psnr(original, bicubic)
     psnr2 = psnr(original, predicted)
-
     ssim1 = ssim(original, bicubic)
-    print(ssim1)
+    ssim2 = ssim(original,predicted)
     
+    torchvision.utils.save_image(resize_image, './results/resize_image.png')
     torchvision.utils.save_image(bicubic, './results/bicubic.png')
     torchvision.utils.save_image(predicted, './results/predicted.png')
     torchvision.utils.save_image(original, './results/original.png')
             
     bicubic = Image.open('./results/bicubic.png')
     predicted = Image.open('./results/predicted.png')
-    original = Image.open('./results/original.png')     
+    original = Image.open('./results/original.png')
+    resize_image = Image.open('./results/resize_image.png')
 
-    #Convert to PIL from Tensor- NOT WORKING
-    # predicted = torchvision.transforms.functional.to_pil_image(predicted)
-    # bicubic = torchvision.transforms.functional.to_pil_image(bicubic_img)
-    # original = torchvision.transforms.functional.to_pil_image(original)
-    
-    #Plot figure
+    #Plot comparison 3
     fig, ax = plt.subplots(1, 3, figsize=(15, 10))
     ax[0].imshow(original)
     ax[0].title.set_text("Original Image")
     ax[1].imshow(bicubic)
     ax[1].title.set_text("Bicubic")
-    ax[1].set_xlabel('psnr: %f' % psnr1)
+    ax[1].set_xlabel('psnr: %f, ssim: %f' % (psnr1, ssim1))
     ax[2].imshow(predicted)
     ax[2].title.set_text(model_name)
-    ax[2].set_xlabel('psnr: %f' % psnr2)
-    plt.show()
+    ax[2].set_xlabel('psnr: %f, ssim: %f' % (psnr2, ssim2))
+    plt.grid(False)
+    plt.savefig("./results/comparison_3_images")
 
-    #Dodać jeszcze zapisywanie plotu                              
-
+    #Plot comaprision 4
+    fig, ax = plt.subplots(2, 2, figsize=(7, 7), sharex=True, sharey=True, constrained_layout = True)
+    ax[0, 0].imshow(resize_image)
+    ax[0, 0].title.set_text("LR Image")
+    ax[0, 1].imshow(original)
+    ax[0, 1].title.set_text("Orignal Image")
+    ax[1, 0].imshow(bicubic)
+    ax[1, 0].title.set_text("Bicubic")
+    ax[1, 0].set_xlabel('psnr: %f, ssim: %f' % (psnr1, ssim1))
+    ax[1, 1].imshow(predicted)
+    ax[1, 1].title.set_text(model_name)
+    ax[1, 1].set_xlabel('psnr: %f, ssim: %f' % (psnr2, ssim2))
+    plt.savefig("./results/comparison_4_images")
+    
 def main () -> None:
     parser = argparse.ArgumentParser(
         prog="Super-resolution testing",
@@ -97,6 +127,14 @@ def main () -> None:
     # Define model
     model = build_model(args.model, args.scale, device)
 
+    #Defime optimizer
+
+    #Define criterion 
+    criterion = define_criterion(args.model)
+
+    # Define optimizer and scheduler
+    optimizer = define_optimizer(args.model, model)
+
     try:
         checkpoint = torch.load(args.checkpoint_path)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -106,6 +144,7 @@ def main () -> None:
         train_psnr = checkpoint['train_psnr']
         val_loss_dict = checkpoint['val_loss']
         val_psnr_dict = checkpoint['val_psnr']
+        train_time = checkpoint['train_time']
 
     except RuntimeError:
         print("!!! ERROR !!!")
@@ -114,9 +153,11 @@ def main () -> None:
         print("!!! ERROR !!!")
 
     print("Successfully loaded model: " + str(model_name))
+    print("Total training time: " + time.strftime("%Hh%Mm%Ss", time.gmtime(train_time)))
     plot_loss_new(train_loss, val_loss_dict, str(args.model) + "_scale_factor: " + str(args.scale))
     plot_psnr_new(train_psnr, val_psnr_dict, str(args.model) + "_scale_factor: " + str(args.scale))
     test_single_image(model, args.model, args.scale, BUTTERFLY)
+    test_set(model, scale_factor, optimizer, criterion, device, "Set5")
 
 if __name__ == "__main__":
     main()

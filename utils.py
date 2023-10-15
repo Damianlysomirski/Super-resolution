@@ -1,8 +1,16 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
+from torchmetrics.image import StructuralSimilarityIndexMeasure
 
+def ssim(label, outputs):
+    """
+    For now use this
+    """
+    label = label.cpu().detach()
+    outputs = outputs.cpu().detach()
+    ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
+    return ssim(outputs, label)
 
 def psnr(label, outputs, max_val=1.):
     """
@@ -41,45 +49,47 @@ def psnr(label, outputs, max_val=1.):
         PSNR = 20 * math.log10(max_val / rmse)
         return PSNR
     
+"""
+For now its not working
+"""
+# def ssim(label, outputs):
+#     """
+#     Calculate the Structural Similarity Index (SSIM) between two images using PyTorch tensors.
 
-def ssim(label, outputs):
-    """
-    Calculate the Structural Similarity Index (SSIM) between two images using PyTorch tensors.
+#     Parameters:
+#     - label (torch.Tensor): Ground truth image tensor.
+#     - outputs (torch.Tensor): Predicted image tensor.
 
-    Parameters:
-    - label (torch.Tensor): Ground truth image tensor.
-    - outputs (torch.Tensor): Predicted image tensor.
+#     Returns:
+#     - ssim_score (float): SSIM score (between -1 and 1).
+#     """
+#     # Ensure tensors are on the CPU and in float64 format
+#     label = label.squeeze().cpu().detach()
+#     outputs = outputs.squeeze().cpu().detach()
 
-    Returns:
-    - ssim_score (float): SSIM score (between -1 and 1).
-    """
-    # Ensure tensors are on the CPU and in float64 format
-    label = label.cpu().detach().numpy().astype(np.float64)
-    outputs = outputs.cpu().detach().numpy().astype(np.float64)
+#     # Constants for SSIM calculation
+#     C1 = (0.01 * 255) ** 2
+#     C2 = (0.03 * 255) ** 2
 
-    # Constants for SSIM calculation
-    C1 = (0.01 * 255) ** 2
-    C2 = (0.03 * 255) ** 2
+#     # Calculate mean of label and outputs across height and width (dimensions 2 and 3)
+#     mu_label = torch.mean(label, dim=0, keepdim=True)
+#     mu_outputs = torch.mean(outputs, dim=0, keepdim=True)
 
-    # Calculate mean of label and outputs
-    mu_label = np.mean(label)
-    mu_outputs = np.mean(outputs)
+#     # Calculate variance of label and outputs across height and width (dimensions 2 and 3)
+#     var_label = torch.var(label, dim=0, keepdim=True)
+#     var_outputs = torch.var(outputs, dim=0, keepdim=True)
 
-    # Calculate variance of label and outputs
-    var_label = np.var(label)
-    var_outputs = np.var(outputs)
+#     # Calculate covariance between label and outputs across height and width (dimensions 2 and 3)
+#     covar = torch.mean((label - mu_label) * (outputs - mu_outputs), dim=0, keepdim=True)
 
-    # Calculate covariance between label and outputs using PyTorch
-    covar = torch.tensor(np.cov(label, outputs, rowvar=False))[0, 1].item()
+#     # SSIM formula components
+#     numerator = (2 * mu_label * mu_outputs + C1) * (2 * covar + C2)
+#     denominator = (mu_label ** 2 + mu_outputs ** 2 + C1) * (var_label + var_outputs + C2)
 
-    # SSIM formula components
-    numerator = (2 * mu_label * mu_outputs + C1) * (2 * covar + C2)
-    denominator = (mu_label ** 2 + mu_outputs ** 2 + C1) * (var_label + var_outputs + C2)
+#     # Calculate SSIM score
+#     ssim_score = torch.mean(numerator / denominator)
 
-    # Calculate SSIM score
-    ssim_score = numerator / denominator
-
-    return ssim_score
+#     return ssim_score
 
 
 def plot_psnr_new(train_psnr, val_psnr, name):
@@ -115,9 +125,7 @@ def plot_psnr_new(train_psnr, val_psnr, name):
     
     # Set the title of the plot with "PSNR" prefix and the provided 'name' argument
     plt.title("PSNR " + str(name))
-    
-    # Display the plot
-    plt.show()
+    plt.savefig("./results/psnr_plot")
 
 
 def plot_loss_new(train_loss, val_loss, name):
@@ -153,6 +161,4 @@ def plot_loss_new(train_loss, val_loss, name):
 
     # Set the title of the plot with "LOSS" prefix and the provided 'name' argument
     plt.title("LOSS " + str(name))
-
-    # Display the plot
-    plt.show()
+    plt.savefig("./results/loss_plot")

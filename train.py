@@ -6,16 +6,20 @@ import torch
 import argparse
 import torch.nn as nn
 import torch.optim as optim
+import time
 from models.VDSR import VDSR
 from models.SRCNN import SRCNN
 from models.ESPCN import ESPCN
-from models.Bicubic import Bicubic
+from models.SRResNet import SRResNet
+import multiprocessing as mp
+
 from validate import validate
 from utils import psnr
 from tqdm import tqdm
 
-TRAIN_DATASET = './resources/BSDS200/'
-EVAL_DATASET = './resources/Set5/'
+TRAIN_DATASET = "BSDS200"
+CROP_SIZE_CONST = 22
+
 
 def train(model, dataloader, optimizer, criterion, device):
     model.train()
@@ -52,30 +56,44 @@ def train(model, dataloader, optimizer, criterion, device):
     final_psnr = running_psnr/len(dataloader)
     return final_loss, final_psnr
 
-"""
-Function to build model depending on parsing arguments
-"""
+
 def build_model(model_name, scale_factor, device):
-    if (model_name == "VDSR"):
+    """
+    Build a neural network model based on the specified model name.
+
+    Parameters:
+    - model_name (str): Name of the neural network model to build (e.g., 'VDSR', 'SRCNN', 'ESPCN').
+    - scale_factor (int): Scaling factor for the model.
+    - device (torch.device): The device (CPU or GPU) where the model will be located.
+
+    Returns:
+    - model (torch.nn.Module): The built neural network model.
+    """
+    if model_name == "VDSR":
         model = VDSR(scale_factor).to(device)
         print("Built model VDSR successfully !")
-    elif (model_name == "SRCNN"):
+    elif model_name == "SRCNN":
         model = SRCNN(scale_factor).to(device)
         print("Built model SRCNN successfully !")
-    elif (model_name == "ESPCN"):
+    elif model_name == "ESPCN":
         model = ESPCN(scale_factor).to(device)
         print("Built model ESPCN successfully !")
+    elif model_name == "SRResNet":
+        model = SRResNet(scale_factor).to(device)
+        print("Built model SRResNet successfully !")
     else:
         raise ValueError(
-            "Unsupported neural network model, please use 'VDSR', 'SRCNN' or 'ESPCN'.")
+            "Unsupported neural network model, please use 'VDSR', 'SRCNN', 'SRResNet' or 'ESPCN'.")
     return model
 
 
 """
 Function to define loss, some models have various loss functions.
 """
+
+
 def define_criterion(model_name):
-    if (model_name == "VDSR"):
+    if (model_name == "VDSR" or model_name == "SRResNet"):
         criterion = nn.MSELoss(reduction="sum")
     else:
         criterion = nn.MSELoss()
@@ -83,23 +101,22 @@ def define_criterion(model_name):
 
 
 def define_optimizer(model_name, model):
-    if (model_name == "VDSR"):
-        optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    if (model_name == "VDSR" or model_name == "SRResNet"):
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
         pass
     elif (model_name == "SRCNN"):
-        optimizer = optim.Adam(model.parameters(), lr=0.0001)
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
         pass
     elif (model_name == "ESPCN"):
         # optimizer = optim.SGD(model.parameters(),
         #                       lr=1e-2,
         #                       momentum=0.9,
         #                       weight_decay=1e-4)
-        optimizer = optim.Adam(model.parameters(), lr=0.0001)
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
     return optimizer
 
-def main() -> None:
-    CROP_SIZE_CONST = 22
 
+def main() -> None:
     parser = argparse.ArgumentParser(
         prog="Super-resolution training",
         description="Program allows training 5 different neural networks for SR usage",
@@ -107,7 +124,7 @@ def main() -> None:
     parser.add_argument(
         "-m",
         "--model",
-        help="Expected model names: SRCNN, VDSR, ESPCN",
+        help="Expected model names: SRCNN, VDSR, ESPCN, SRResNet",
         required=True,
         default="ESPCN"
     )
@@ -158,27 +175,38 @@ def main() -> None:
     model = build_model(args.model, args.scale, device)
 
     # Define datasets
-    train_dataset = SR_Dataset(scale_factor=scale_factor, path=TRAIN_DATASET,
-                               crop_size=scale_factor*CROP_SIZE_CONST, mode="train")
-    eval_dataset = SR_Dataset(scale_factor=scale_factor, path=EVAL_DATASET,
-                              crop_size=scale_factor*CROP_SIZE_CONST, mode="valid")
+    train_dataset = SR_Dataset(scale_factor=scale_factor,
+                               path=f"./resources/{TRAIN_DATASET}/",
+                               crop_size=scale_factor*CROP_SIZE_CONST,
+                               mode="train")
+    eval_dataset = SR_Dataset(scale_factor=scale_factor,
+                              path='./resources/Set5/',
+                              crop_size=scale_factor*CROP_SIZE_CONST,
+                              mode="valid")
 
     # Define dataloaders
     train_loader = DataLoader(dataset=train_dataset,
-                              num_workers=0, batch_size=64, shuffle=True)
+                              num_workers=0,
+                              batch_size=64, 
+                              pin_memory=True,
+                              drop_last=True,
+                              shuffle=True)
+    
     valid_loader = DataLoader(dataset=eval_dataset,
-                              num_workers=0, batch_size=64, shuffle=False)
+                              num_workers=0, 
+                              batch_size=64, 
+                              shuffle=False)
 
     # Define loss criterion
     criterion = define_criterion(args.model)
 
     # Define optimizer and scheduler
-    #optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    # optimizer = optim.Adam(model.parameters(), lr=0.0001)
     optimizer = define_optimizer(args.model, model)
 
     # Define mode of training: training_from_the_begining or training_from_checkpoint
     training_mode = args.training_mode
-    print("Training mode: " +str(training_mode))
+    print("Training mode: " + str(training_mode))
 
     """
     Check for load
@@ -202,6 +230,7 @@ def main() -> None:
                 best_valid_loss = checkpoint['best_valid_loss']
                 epochs += epoch
                 start_epoch = epoch
+                train_time = checkpoint['train_time']
 
             except ValueError:
                 print("Oops! Passed wrong path to the checkpoint, check it and try again")
@@ -209,23 +238,27 @@ def main() -> None:
         start_epoch = 0
         train_loss, train_psnr = [], []
         val_psnr_dict, val_loss_dict = {}, {}
-        best_valid_loss = 1
+        best_valid_loss = 100
+        train_time = 0
 
         #Lets try with dict
 
     for epoch in range(start_epoch, epochs + 1):
+        training_start_time = time.time()
         print(f"Epoch {epoch} of {epochs}")
 
         train_epoch_loss, train_epoch_psnr = train(model, train_loader, optimizer, criterion, device)
         train_loss.append(train_epoch_loss)
         train_psnr.append(train_epoch_psnr)
 
-        if (epoch % 25 == 0):
+        train_time += time.time() - training_start_time
+
+        if (epoch % 50 == 0):
         #Validation every 25 epoch
             val_epoch_loss, val_epoch_psnr = validate(model, valid_loader, optimizer, criterion, device)
             val_psnr_dict[epoch] = val_epoch_psnr
             val_loss_dict[epoch] = val_epoch_loss
-            
+
             # print(f"Train PSNR: {train_epoch_psnr:.3f}")
             # print(f"Val PSNR: {val_epoch_psnr:.3f}")
             print(f"Val LOSS: {val_epoch_loss:.16f}")
@@ -236,8 +269,8 @@ def main() -> None:
                 best_valid_loss = val_epoch_loss
 
                 model_name = model.__class__.__name__
-                model_save_name = model_name + "_" + "sf_" + str(scale_factor) + "_epoch_" + str(epoch) + ".pt"
-                
+                model_save_name = model_name + "_" + "sf_" + str(scale_factor) + "_epoch_" + str(epoch) + "_" + str(TRAIN_DATASET) + ".pt"
+
                 path = "./checkpoints_new/" + model_save_name
 
                 torch.save({
@@ -254,12 +287,12 @@ def main() -> None:
                         'val_loss': val_loss_dict,
                         'train_psnr': train_psnr,
                         'val_psnr': val_psnr_dict,
-                        'best_valid_loss': best_valid_loss
+                        'best_valid_loss': best_valid_loss,
+                        'train_time': train_time
                         }, path)
-                
+
                 print("New checkpoint created")
 
-    print(val_psnr_dict)        
 
 if __name__ == "__main__":
     main()

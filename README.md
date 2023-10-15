@@ -16,14 +16,13 @@ Neural netoworks currently implemented for SR:
 ## Example of usage
 
 For training from start:
-python train.py -m "SRCNN" -s 3 -e 3 -t "training_from_the_beginning"
-
+python train.py -m "VDSR" -s 3 -e 3 -t "training_from_the_beginning"
 
 To continue training from checkpoint:
-python train.py -m "SRCNN" -s 3 -e 3 -t "training_from_checkpoint" -p "./checkpoints_new/SRCNN_sf_3_epoch_3.pt"
+python train.py -m "VDSR" -s 3 -e 3 -t "training_from_checkpoint" -p "./checkpoints_new/VDSR_sf_3_epoch_3550_BSDS200.pt"
 
 To test:
-python test.py -m "ESPCN" -s 3 -p "./checkpoints_new/ESPCN_sf_3_epoch_100.pt"
+python test.py -m "VDSR" -s 3 -p "./checkpoints_new/VDSR_sf_3_epoch_3550_BSDS200.pt"
 
 
 ## Downloading and instalation
