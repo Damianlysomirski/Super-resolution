@@ -14,15 +14,16 @@ class VDSR(nn.Module):
         self.upsample = nn.Upsample(scale_factor=scale_factor, mode='bicubic', align_corners=False)
         
         # Input layer
-        layers.append(nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1))
+        layers.append(nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1, bias=False))
+        layers.append(nn.ReLU())
 
         # Residual layers
         for i in range(18):
-            layers.append(nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1))
+            layers.append(nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1, bias=False))
             layers.append(nn.ReLU())
 
         # Output layer
-        layers.append(nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, stride=1, padding=1))
+        layers.append(nn.Conv2d(in_channels=64, out_channels=3, kernel_size=3, stride=1, padding=1, bias=False))
         # Create the neural network model using the defined layers
         self.model = nn.Sequential(*layers)
 

@@ -1,5 +1,5 @@
 from torch import nn
-
+import torch
 
 class ESPCN(nn.Module):
     def __init__(self, scale_factor: int):
@@ -21,6 +21,7 @@ class ESPCN(nn.Module):
             nn.PixelShuffle(scale_factor),
         )
 
+
     def forward(self, x):
         """
         Forward pass of the ESPCN model.
@@ -30,6 +31,6 @@ class ESPCN(nn.Module):
         - x (torch.Tensor): Output super-resolved image tensor.
         """
         # Pass the input image through the model
-        x = self.model(x)
+        x = self.model(x).to(torch.float32)
         return x
 

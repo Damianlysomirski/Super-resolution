@@ -55,3 +55,4 @@ def validate(model, dataloader, optimizer, criterion, device):
     final_ssim = running_ssim / len(dataloader)
 
     return final_loss, final_psnr, final_ssim
+

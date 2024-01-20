@@ -17,9 +17,10 @@ from validate import validate
 from utils import psnr
 from tqdm import tqdm
 
-TRAIN_DATASET = "BSDS200"
-CROP_SIZE_CONST = 22
-
+TRAIN_DATASET = "DIV2K_s"
+TRAIN_BATCH =  16 #28
+NUM_WORKERS = 2
+CROP_SIZE = 48
 
 def train(model, dataloader, optimizer, criterion, device):
     model.train()
@@ -93,8 +94,11 @@ Function to define loss, some models have various loss functions.
 
 
 def define_criterion(model_name):
-    if (model_name == "VDSR" or model_name == "SRResNet"):
+    if (model_name == "VDSR"):
         criterion = nn.MSELoss(reduction="sum")
+        #criterion = nn.MSELoss()
+    elif(model_name == "SRResNet"):
+        criterion = nn.MSELoss()
     else:
         criterion = nn.MSELoss()
     return criterion
@@ -102,16 +106,10 @@ def define_criterion(model_name):
 
 def define_optimizer(model_name, model):
     if (model_name == "VDSR" or model_name == "SRResNet"):
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
-        pass
+        optimizer = optim.Adam(model.parameters(), lr=0.0001)
     elif (model_name == "SRCNN"):
         optimizer = optim.Adam(model.parameters(), lr=0.001)
-        pass
     elif (model_name == "ESPCN"):
-        # optimizer = optim.SGD(model.parameters(),
-        #                       lr=1e-2,
-        #                       momentum=0.9,
-        #                       weight_decay=1e-4)
         optimizer = optim.Adam(model.parameters(), lr=0.001)
     return optimizer
 
@@ -160,6 +158,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
+
     # Define the number of training epochs
     epochs = args.epochs
     print("Defined training epochs: " + str(epochs))
@@ -177,17 +176,17 @@ def main() -> None:
     # Define datasets
     train_dataset = SR_Dataset(scale_factor=scale_factor,
                                path=f"./resources/{TRAIN_DATASET}/",
-                               crop_size=scale_factor*CROP_SIZE_CONST,
+                               crop_size=scale_factor*CROP_SIZE,
                                mode="train")
     eval_dataset = SR_Dataset(scale_factor=scale_factor,
                               path='./resources/Set5/',
-                              crop_size=scale_factor*CROP_SIZE_CONST,
+                              crop_size=scale_factor*CROP_SIZE,
                               mode="valid")
 
     # Define dataloaders
     train_loader = DataLoader(dataset=train_dataset,
-                              num_workers=0,
-                              batch_size=64, 
+                              num_workers=NUM_WORKERS,
+                              batch_size=TRAIN_BATCH, 
                               pin_memory=True,
                               drop_last=True,
                               shuffle=True)
@@ -253,9 +252,9 @@ def main() -> None:
 
         train_time += time.time() - training_start_time
 
-        if (epoch % 50 == 0):
-        #Validation every 25 epoch
-            val_epoch_loss, val_epoch_psnr = validate(model, valid_loader, optimizer, criterion, device)
+        if (epoch % 1 == 0):
+        #Validation every 50 epoch
+            val_epoch_loss, val_epoch_psnr, _ = validate(model, valid_loader, optimizer, criterion, device)
             val_psnr_dict[epoch] = val_epoch_psnr
             val_loss_dict[epoch] = val_epoch_loss
 
@@ -293,6 +292,8 @@ def main() -> None:
 
                 print("New checkpoint created")
 
-
 if __name__ == "__main__":
     main()
+
+
+

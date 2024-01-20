@@ -1,82 +1,73 @@
 from torch import nn
+import math
+import torch
 
-class ResidualBlock(nn.Module):
-    """
-    Base Residual Block
-    """
-    def __init__(self,channels: int, kernel_size: int, activation):
-        super(ResidualBlock, self).__init__()
-        self.model = nn.Sequential
-        (
-            nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=kernel_size, stride=1, padding=kernel_size//2),
-            nn.BatchNorm2d(num_features=channels),
-            activation(),
-            nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=kernel_size, stride=1, padding=kernel_size//2),
-            nn.BatchNorm2d(num_features=channels)
+class ResBlock(nn.Module):
+    def __init__(self, channel, kernel, pad):
+        super().__init__()
+        self.relu = nn.ReLU()
+        self.inner_block = nn.Sequential(
+            nn.Conv2d(channel, channel, kernel, padding=pad),
+            nn.ReLU(),
+            nn.Conv2d(channel, channel, kernel, padding=pad)
         )
 
-    def forward(self, x):
-        x = self.model(x) + x
-        return x
+    def forward(self, img):
+        x = self.relu(img)
+        out = self.inner_block(x)
+        return x + out
 
-class UpsampleBlock(nn.Module):
-    """
-    Base PixelShuffle Upsample Block
-    """
-    def __init__(self, n_upsamples: int, channels: int, kernel_size: int, activation):
-        super(UpsampleBlock, self).__init__()
-        layers = []
-        for _ in range(n_upsamples):
-            layers.extend([
-            nn.Conv2d(in_channels=channels, out_channels=channels * 2**2, kernel_size=kernel_size, stride=1, padding=kernel_size//2),
-            nn.PixelShuffle(2),
-            activation()])
-        self.model = nn.Sequential(*layers)
-
-    def forward(self, x):
-        x = self.model(x)
-        return x
+class PixelShuffleBlock(nn.Module):
+    def __init__(self, channel, kernel, pad):
+        super().__init__()
+        upscale_factor = 2
+        self.inner_block = nn.Sequential(
+            nn.Conv2d(channel, channel*(upscale_factor**2), kernel, padding=pad), 
+            nn.PixelShuffle(upscale_factor),
+        )
+    
+    def forward(self, img):
+        return self.inner_block(img)
+    
+class PixelShuffleBlockx3(nn.Module):
+    def __init__(self, channel, kernel, pad):
+        super().__init__()
+        upscale_factor = 3
+        self.inner_block = nn.Sequential(
+            nn.Conv2d(channel, channel*(upscale_factor**2), kernel, padding=pad), 
+            nn.PixelShuffle(upscale_factor),
+        )
+    
+    def forward(self, img):
+        return self.inner_block(img)
 
 class SRResNet(nn.Module):
-    """Super-Resolution Residual Neural Network
-    https://arxiv.org/pdf/1609.04802v5.pdf
-
-    Parameters
-    ----------
-    scale_factor : int
-    Super-Resolution scale factor. Determines Low-Resolution downsampling. 
-    """
-    def __init__(self, scale_factor: int):
-        super(SRResNet, self).__init__()
-        self.n_res_blocks = 16
+    def __init__(self, scale_factor):
+        super().__init__()
+        channel = 64
+        kernel = 3
+        pad = 1
         
-        # Pre Residual Blocks
-        self.head = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=64, kernel_size=9, stride=1, padding=4),
-            nn.PReLU())
-        # Residual Blocks
-        self.res_blocks = [
-            ResidualBlock(channels=64, kernel_size=3, activation=nn.PReLU) 
-            for _ in range(self.n_res_blocks)]
-        self.res_blocks.append(nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1))
-        self.res_blocks.append(nn.BatchNorm2d(num_features=64))
-        self.res_blocks = nn.Sequential(*self.res_blocks)
-        # Upsamples
-        n_upsamples = 1 if scale_factor == 2 else 2
-        self.upsample = UpsampleBlock(
-            n_upsamples=n_upsamples,
-            channels=64,
-            kernel_size=3,
-            activation=nn.PReLU)
-        # Output layer
-        self.tail = nn.Sequential(
-            nn.Conv2d(in_channels=64, out_channels=3, kernel_size=9, stride=1, padding=4),
-            nn.Tanh())
+        self.conv = nn.Conv2d(3, channel, kernel, padding=pad)
+        self.res_blocks = nn.Sequential(
+            *[ResBlock(channel, kernel, pad) for _ in range(9)],
+            nn.ReLU(),
+            nn.Conv2d(channel, channel, kernel, padding=pad),
+        )
+        if(scale_factor == 3):
+            self.pixel_shuffle_blocks = nn.Sequential(
+                PixelShuffleBlockx3(channel, kernel, pad),
+                nn.Conv2d(channel, 3, kernel, padding=pad)
+            )
+            pass
+        else:
+            self.pixel_shuffle_blocks = nn.Sequential(
+                *[PixelShuffleBlock(channel, kernel, pad) for _ in range(int( math.log2(scale_factor) ))],
+                nn.Conv2d(channel, 3, kernel, padding=pad)
+            )
 
-    def forward(self, x):
-        x = self.head(x)
-        shortcut = x
-        x = self.res_blocks(x) + shortcut
-        x = self.upsample(x)
-        x = self.tail(x)
-        return x
+    def forward(self, img):
+        x = self.conv(img)
+        out = self.res_blocks(x)
+        out = self.pixel_shuffle_blocks(x+out).to(torch.float32)
+        return out

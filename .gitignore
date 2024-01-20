@@ -134,3 +134,5 @@ dmypy.json
 
 #Big dataset
 /resources/DIV2K
+/resources/DIV2K_s
+/resources/DIV2K_split

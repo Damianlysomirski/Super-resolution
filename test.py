@@ -12,16 +12,20 @@ from torch.utils.data import DataLoader
 from validate import validate
 from models.Bicubic import Bicubic
 import time
+from torchsummary import summary
 
+COMIC = './resources/Set14/comic.png'
 BUTTERFLY = './resources/Set5/butterfly.png'
 ZEBRA = './resources/Set14/zebra.png'
 BABY = './resources/Set5/baby.png'
+BIRD = './resources/Set5/bird.png'
 
 def test_set(model, scale_factor, optimizer, criterion, device, set_name):
     model.eval()
+    summary(model, (3, 48, 48))
     bicubic = Bicubic(scale_factor=scale_factor).to(device)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    test_dataset = SR_Dataset(scale_factor=3, path=f"./resources/{set_name}/", crop_size=0, mode="test")
+    test_dataset = SR_Dataset(scale_factor=scale_factor, path=f"./resources/{set_name}/", crop_size=0, mode="test")
     test_loader =  DataLoader(dataset=test_dataset, num_workers=0, batch_size=1, shuffle=False)
     _, test_psnr, test_ssim = validate(model, test_loader, optimizer, criterion, device)
     _, bicubic_psnr, bicubic_ssim = validate(bicubic, test_loader, optimizer, criterion, device)
@@ -30,15 +34,27 @@ def test_set(model, scale_factor, optimizer, criterion, device, set_name):
     print(f"Test {set_name} SSIM for model: {test_ssim:.3f}")
     print(f"Test {set_name} SSIM for bicubic: {bicubic_ssim:.3f}")
 
+def test_image(model, path):
+    torch.cuda.empty_cache()
+    model.eval()
+    device = torch.device("cpu")
+    model.to(device)
+    data_transform = Compose([ToTensor()])
+    img = Image.open(path)
+    img = data_transform(img).unsqueeze(0).to(device)
+    predicted = model(img)
+    torchvision.utils.save_image(predicted, './predict.png')
+    
+
 def test_single_image(model, model_name, scale_factor, image):
     model.eval()
     original = Image.open(image)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     w, h = original.size
-    w_mod_3 = w % scale_factor
-    h_mod_3 = h % scale_factor
-    w = w - w_mod_3
-    h = h - h_mod_3
+    w_mod = w % scale_factor
+    h_mod = h % scale_factor
+    w = w - w_mod
+    h = h - h_mod
     data_transform = Compose([ToTensor()]) 
     original = original.resize((int(w), int(h)), Image.Resampling.BICUBIC)
     resize_image = original.resize((int(w/scale_factor), int(h/scale_factor)), Image.Resampling.BICUBIC) 
@@ -65,26 +81,48 @@ def test_single_image(model, model_name, scale_factor, image):
     resize_image = Image.open('./results/resize_image.png')
 
     #Plot comparison 3
-    fig, ax = plt.subplots(1, 3, figsize=(15, 10))
+    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
     ax[0].imshow(original)
-    ax[0].title.set_text("Original Image")
+    ax[0].title.set_text("Obraz oryginalny")
+
+    # inset axes....
+    axin1 = ax[0].inset_axes([0.5, 0.5, 0.47, 0.47], xlim=(100, 150), ylim=(200, 250))
+    axin1.imshow(original)
+    ax[0].indicate_inset_zoom(axin1, edgecolor="blue")
+    axin1.axis("off")
+
+
     ax[1].imshow(bicubic)
-    ax[1].title.set_text("Bicubic")
+    ax[1].title.set_text("Interpolacja dwusześcienna")
     ax[1].set_xlabel('psnr: %f, ssim: %f' % (psnr1, ssim1))
+
+    # inset axes....
+    axin2 = ax[1].inset_axes([0.5, 0.5, 0.47, 0.47], xlim=(100, 150), ylim=(200, 250))
+    axin2.imshow(bicubic)
+    ax[1].indicate_inset_zoom(axin2, edgecolor="blue")
+    axin2.axis("off")
+
+
     ax[2].imshow(predicted)
     ax[2].title.set_text(model_name)
     ax[2].set_xlabel('psnr: %f, ssim: %f' % (psnr2, ssim2))
-    plt.grid(False)
+
+    # inset axes....
+    axin3 = ax[2].inset_axes([0.5, 0.5, 0.47, 0.47], xlim=(100, 150), ylim=(200, 250))
+    axin3.imshow(predicted)
+    ax[2].indicate_inset_zoom(axin3, edgecolor="blue")
+    axin3.axis("off")
+
     plt.savefig("./results/comparison_3_images")
 
     #Plot comaprision 4
     fig, ax = plt.subplots(2, 2, figsize=(7, 7), sharex=True, sharey=True, constrained_layout = True)
     ax[0, 0].imshow(resize_image)
-    ax[0, 0].title.set_text("LR Image")
+    ax[0, 0].title.set_text("Obraz niskorozdzielczościowy")
     ax[0, 1].imshow(original)
-    ax[0, 1].title.set_text("Orignal Image")
+    ax[0, 1].title.set_text("Obraz oryginalny")
     ax[1, 0].imshow(bicubic)
-    ax[1, 0].title.set_text("Bicubic")
+    ax[1, 0].title.set_text("Interpolacja dwusześcienna")
     ax[1, 0].set_xlabel('psnr: %f, ssim: %f' % (psnr1, ssim1))
     ax[1, 1].imshow(predicted)
     ax[1, 1].title.set_text(model_name)
@@ -151,13 +189,17 @@ def main () -> None:
         print("Oops! Passed wrong path to the checkpoint, check it and try again !!!")
         print("Check value difference between the given scale_factor in the path and the given one in arg_parse !!!")
         print("!!! ERROR !!!")
-
+    
     print("Successfully loaded model: " + str(model_name))
     print("Total training time: " + time.strftime("%Hh%Mm%Ss", time.gmtime(train_time)))
     plot_loss_new(train_loss, val_loss_dict, str(args.model) + "_scale_factor: " + str(args.scale))
     plot_psnr_new(train_psnr, val_psnr_dict, str(args.model) + "_scale_factor: " + str(args.scale))
-    test_single_image(model, args.model, args.scale, BUTTERFLY)
+    
+    test_single_image(model, args.model, args.scale, BIRD)
+
     test_set(model, scale_factor, optimizer, criterion, device, "Set5")
+    test_set(model, scale_factor, optimizer, criterion, device, "Set14")
 
 if __name__ == "__main__":
     main()
+

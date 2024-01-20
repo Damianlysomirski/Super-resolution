@@ -9,7 +9,7 @@ def ssim(label, outputs):
     """
     label = label.cpu().detach()
     outputs = outputs.cpu().detach()
-    ssim = StructuralSimilarityIndexMeasure(data_range=1.0)
+    ssim = StructuralSimilarityIndexMeasure()
     return ssim(outputs, label)
 
 def psnr(label, outputs, max_val=1.):
