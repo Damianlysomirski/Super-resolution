@@ -30,34 +30,43 @@ pip install -r requirements.txt
 ``` 
 
 ## Example of usage
-``` 
 For training from start use:
+``` 
 python train.py -m "<model_name>" -s <scale_factor> -e <epochs> -t "training_from_the_beginning"
-
-Example: python train.py -m "SRCNN" -s 4 -e 30000 -t "training_from_the_beginning"
-
+``` 
+Example: 
+``` 
+python train.py -m "SRCNN" -s 4 -e 30000 -t "training_from_the_beginning"
+``` 
 To continue training from checkpoint:
+``` 
 python train.py -m "<model_name>" -s <scale_factor> -e <epochs> -t "training_from_checkpoint" -p "<path>
-
+``` 
 Example:
+``` 
 python train.py -m "SRCNN" -s 3 -e 3000 -t "training_from_checkpoint" -p "./checkpoints_new/SRCNN_sf_3_DIV2Ks/
-
+``` 
 To test:
+``` 
 python test.py -m "<model_name>" -s <scale> -p <path>
+``` 
 
 Scale factor 2:
+``` 
 python test.py -m "SRCNN" -s 2 -p "./checkpoints_new/SRCNN_sf_2_DIV2Ks/SRCNN_sf_2_epoch_974_DIV2K_s.pt"
 python test.py -m "ESPCN" -s 2 -p "./checkpoints_new/ESPCN_sf_2_DIV2Ks/ESPCN_sf_2_epoch_652_DIV2K_s.pt"
-python test.py -m "VDSR" -s 2 -p "./checkpoints_new/VDSR_sf_2_epoch_244_DIV2K_s.pt"
+python test.py -m "VDSR" -s 2 -p "./checkpoints_new/VDSR_sf_2_DIV2Ks/VDSR_sf_2_epoch_244_DIV2K_s.pt"
 python test.py -m "SRResNet" -s 2 -p "./checkpoints_new/SRResNet_sf_2_DIV2Ks/SRResNet_sf_2_epoch_600_DIV2K_s.pt
-
+``` 
 Scale factor 3:
+``` 
 python test.py -m "SRCNN" -s 3 -p "./checkpoints_new/SRCNN_sf_3_DIV2Ks/SRCNN_sf_3_epoch_839_DIV2K_s.pt
 python test.py -m "ESPCN" -s 3 -p "./checkpoints_new/ESPCN_sf_3_DIV2Ks/ESPCN_sf_3_epoch_30_DIV2K_s.pt"
 python test.py -m "VDSR" -s 3 -p "./checkpoints_new/VDSR_sf_3_DIV2Ks/VDSR_sf_3_epoch_132_DIV2K_s.pt"
-python test.py -m "SRResNet" -s 3 -p "./checkpoints_new/SRResNet_sf_3_DIV2Ks/SRResNet_sf_3_epoch_31_DIV2K_s.pt
-
+python test.py -m "SRResNet" -s 3 -p "./checkpoints_new/SRResNet_sf_3_DIV2Ks/SRResNet_sf_4_epoch_446_DIV2K_s.pt
+``` 
 Scale factor 4:
+``` 
 python test.py -m "SRCNN" -s 4 -p "./checkpoints_new/SRCNN_sf_4_DIV2Ks/SRCNN_sf_4_epoch_766_DIV2K_s.pt"
 python test.py -m "ESPCN" -s 4 -p "./checkpoints_new/ESPCN_sf_4_DIV2Ks/ESPCN_sf_4_epoch_679_DIV2K_s.pt"
 python test.py -m "VDSR" -s 4 -p "./checkpoints_new/VDSR_sf_4_DIV2Ks/VDSR_sf_4_epoch_96_DIV2K_s.pt"
