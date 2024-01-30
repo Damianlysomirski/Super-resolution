@@ -9,24 +9,23 @@ The rapid development of digital technologies observed in recent years has led t
 ## Downloading and instalation
 ```
 # Clone repo
-git clone 
-cd Super-resolution
+$ git clone https://github.com/Damianlysomirski/Super-resolution.git
+$ cd Super-resolution
 
-# Creating virtual environment
-python -m venv venv 
+#Creating virtual environment
+$ python -m venv venv 
 
 #Avtivation on linux
-source ./venv/bin/activate
+$ source ./venv/bin/activate
 
 #Activation od windows CMD
-.\venv\Scripts\activate
+$ .\venv\Scripts\activate
 
 # Installing requirements
-pip install -r requirements.txt
-
+$ pip install -r requirements.txt
 
 #Deactive on windows CMD
-.\venv\Scripts\deactivate
+$ .\venv\Scripts\deactivate
 ``` 
 
 ## Example of usage
@@ -61,7 +60,7 @@ python test.py -m "SRResNet" -s 2 -p "./checkpoints_new/SRResNet_sf_2_DIV2Ks/SRR
 Scale factor 3:
 ``` 
 python test.py -m "SRCNN" -s 3 -p "./checkpoints_new/SRCNN_sf_3_DIV2Ks/SRCNN_sf_3_epoch_839_DIV2K_s.pt
-python test.py -m "ESPCN" -s 3 -p "./checkpoints_new/ESPCN_sf_3_DIV2Ks/ESPCN_sf_3_epoch_30_DIV2K_s.pt"
+python test.py -m "ESPCN" -s 3 -p "./checkpoints_new/ESPCN_sf_3_DIV2Ks/ESPCN_sf_3_epoch_792_DIV2K_s.pt"
 python test.py -m "VDSR" -s 3 -p "./checkpoints_new/VDSR_sf_3_DIV2Ks/VDSR_sf_3_epoch_132_DIV2K_s.pt"
 python test.py -m "SRResNet" -s 3 -p "./checkpoints_new/SRResNet_sf_3_DIV2Ks/SRResNet_sf_4_epoch_446_DIV2K_s.pt
 ``` 
@@ -78,10 +77,27 @@ To test you need to used previously trained model, after using test.py,
 there will be printed statistics for Set5 and Set14, and results for example image.
 All results are saved in results folder, for latests used model.
 
+### Comparision 3 images:
 ![alt text](./results/comparison_3_images.png)
+
+### Comparision 4 images:
 ![alt text](./results/comparison_4_images.png)
+
+### PSNR plot:
 ![alt text](./results/psnr_plot.png)
 
+## Predict
+The test command also provides predictions for the given input image (without reference to the original).
+It is saved as predict.png
+
+### Low-resolution:
+![alt text](./resources/BSDS200/24004.png)
+
+### High-resolution:
+![alt text](predict.png)
+
 ## Additional informations
-Repository do not contain DIV2Ks dataset, contain onyl Dataset's for testing
+Repository do not contain DIV2Ks dataset, contain onyl Dataset's for testing: Set5, Set15, BSDS200
+For training please remember to install cuda:
+https://developer.nvidia.com/cuda-downloads 
 

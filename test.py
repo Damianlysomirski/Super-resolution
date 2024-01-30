@@ -198,7 +198,7 @@ def main () -> None:
     plot_loss_new(train_loss, val_loss_dict, str(args.model) + "_scale_factor: " + str(args.scale))
     plot_psnr_new(train_psnr, val_psnr_dict, str(args.model) + "_scale_factor: " + str(args.scale))
     
-    test_single_image(model, args.model, args.scale, BIRD)
+    test_single_image(model, args.model, args.scale, BUTTERFLY)
 
     test_set(model, scale_factor, optimizer, criterion, device, "Set5")
     test_set(model, scale_factor, optimizer, criterion, device, "Set14")

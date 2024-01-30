@@ -17,7 +17,7 @@ from validate import validate
 from utils import psnr
 from tqdm import tqdm
 
-TRAIN_DATASET = "DIV2K_s"
+TRAIN_DATASET = "BSDS200"
 TRAIN_BATCH =  16 #28
 NUM_WORKERS = 2
 CROP_SIZE = 48
