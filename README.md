@@ -7,24 +7,29 @@ Abstract:
 The rapid development of digital technologies observed in recent years has led to a demand for high-resolution images. Blurry, smeared images with a low pixel count become unpleasant to the eye. Improving image resolution, also known as super-resolution, is a technique for generating high-resolution images from low-resolution counterparts in a way that achieves a clear, sharp image with more pixels, without visible distortions. To achieve this, both classic interpolation methods and deep learning techniques are used. The aim of this study is to apply deep neural networks to improve image resolution. In the course of the study, neural network models used in the field were reviewed, and four of them were implemented. A program was created that enabled the implementation of the SRCNN, ESPCN, VDSR, SRResNet models. The models were trained on the created DIV2Ks dataset and then tested in a uniform testing environment. The results obtained for each model were compared in terms of quality, efficiency, and the ability to adjust the scaling factor, as well as compared with classic image resolution improvement methods (interpolation methods). The final aspect of the study is the analysis of the results obtained and consideration of future development directions.
 
 ## Downloading and instalation
+Clone repo
 ```
-# Clone repo
 $ git clone https://github.com/Damianlysomirski/Super-resolution.git
 $ cd Super-resolution
-
-#Creating virtual environment
+```
+Creating virtual environment
+```
 $ python -m venv venv 
-
-#Avtivation on linux
+```
+Activation on linux
+```
 $ source ./venv/bin/activate
-
-#Activation od windows CMD
+```
+Activation od windows CMD
+```
 $ .\venv\Scripts\activate
-
-# Installing requirements
+```
+Installing requirements
+```
 $ pip install -r requirements.txt
-
-#Deactive on windows CMD
+```
+Deactive on windows CMD
+```
 $ .\venv\Scripts\deactivate
 ``` 
 
