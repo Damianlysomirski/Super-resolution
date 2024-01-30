@@ -20,6 +20,9 @@ ZEBRA = './resources/Set14/zebra.png'
 BABY = './resources/Set5/baby.png'
 BIRD = './resources/Set5/bird.png'
 
+image = './resources/BSDS200/24004.png'
+
+
 def test_set(model, scale_factor, optimizer, criterion, device, set_name):
     model.eval()
     summary(model, (3, 48, 48))
@@ -199,6 +202,8 @@ def main () -> None:
 
     test_set(model, scale_factor, optimizer, criterion, device, "Set5")
     test_set(model, scale_factor, optimizer, criterion, device, "Set14")
+
+    test_image(model, image)
 
 if __name__ == "__main__":
     main()
