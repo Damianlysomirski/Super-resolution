@@ -11,25 +11,25 @@ Clone repo
 ```
 $ git clone https://github.com/Damianlysomirski/Super-resolution.git
 $ cd Super-resolution
-```
+
 Creating virtual environment
-```
+
 $ python -m venv venv 
-```
+
 Activation on linux
-```
+
 $ source ./venv/bin/activate
-```
+
 Activation od windows CMD
-```
+
 $ .\venv\Scripts\activate
-```
+
 Installing requirements
-```
+
 $ pip install -r requirements.txt
-```
+
 Deactive on windows CMD
-```
+
 $ .\venv\Scripts\deactivate
 ``` 
 
