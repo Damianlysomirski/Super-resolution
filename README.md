@@ -53,7 +53,9 @@ To predict output for small input imagel, for all trained models: SRCNN, ESPCN, 
 python test_all.py -s <scale> -input <input_image>
 
 Example:
+python test_all.py -s 2 -input "./resources/BSDS200/2092.png"
 python test_all.py -s 3 -input "./resources/BSDS200/24004.png"
+python test_all.py -s 4 -input "./resources/BSDS200/100080.png"
 ```
 
 The results are saved in folder results_all.
