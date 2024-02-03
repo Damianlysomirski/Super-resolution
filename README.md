@@ -34,7 +34,8 @@ $ .\venv\Scripts\deactivate
 ``` 
 
 ## Example of usage
-For training from start use:
+
+### For training from start use:
 ``` 
 python train.py -m "<model_name>" -s <scale_factor> -e <epochs> -t "training_from_the_beginning"
 ``` 
@@ -49,8 +50,22 @@ python train.py -m "<model_name>" -s <scale_factor> -e <epochs> -t "training_fro
 Example:
 ``` 
 python train.py -m "SRCNN" -s 3 -e 3000 -t "training_from_checkpoint" -p "./checkpoints_new/SRCNN_sf_3_DIV2Ks/
+```
+### To test all
+To predict output for small input imagel, for all trained models: SRCNN, ESPCN, VDSR, SRResNet, Bicubic, for given scale use command:
+
 ``` 
-To test:
+python test_all.py -s <scale> -input <input_image>
+``` 
+
+The results are saved in folder results_all.
+
+Example:
+``` 
+python test_all.py -s 3 -input "./resources/BSDS200/24004.png"
+```
+
+### To test single:
 ``` 
 python test.py -m "<model_name>" -s <scale> -p <path>
 ``` 
@@ -64,10 +79,10 @@ python test.py -m "SRResNet" -s 2 -p "./checkpoints_new/SRResNet_sf_2_DIV2Ks/SRR
 ``` 
 Scale factor 3:
 ``` 
-python test.py -m "SRCNN" -s 3 -p "./checkpoints_new/SRCNN_sf_3_DIV2Ks/SRCNN_sf_3_epoch_839_DIV2K_s.pt
+python test.py -m "SRCNN" -s 3 -p "./checkpoints_new/SRCNN_sf_3_DIV2Ks/SRCNN_sf_3_epoch_839_DIV2K_s.pt"
 python test.py -m "ESPCN" -s 3 -p "./checkpoints_new/ESPCN_sf_3_DIV2Ks/ESPCN_sf_3_epoch_792_DIV2K_s.pt"
 python test.py -m "VDSR" -s 3 -p "./checkpoints_new/VDSR_sf_3_DIV2Ks/VDSR_sf_3_epoch_132_DIV2K_s.pt"
-python test.py -m "SRResNet" -s 3 -p "./checkpoints_new/SRResNet_sf_3_DIV2Ks/SRResNet_sf_4_epoch_446_DIV2K_s.pt
+python test.py -m "SRResNet" -s 3 -p "./checkpoints_new/SRResNet_sf_3_DIV2Ks/SRResNet_sf_3_epoch_530_DIV2K_s.pt"
 ``` 
 Scale factor 4:
 ``` 
@@ -76,6 +91,7 @@ python test.py -m "ESPCN" -s 4 -p "./checkpoints_new/ESPCN_sf_4_DIV2Ks/ESPCN_sf_
 python test.py -m "VDSR" -s 4 -p "./checkpoints_new/VDSR_sf_4_DIV2Ks/VDSR_sf_4_epoch_96_DIV2K_s.pt"
 python test.py -m "SRResNet" -s 4 -p "./checkpoints_new/SRResNet_sf_4_DIV2Ks/SRResNet_sf_4_epoch_446_DIV2K_s.pt"
 ``` 
+
 
 ## Results
 To test you need to used previously trained model, after using test.py, 
